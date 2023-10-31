@@ -11,4 +11,5 @@ type Task struct {
 	Title     string    `db:"title"`
 	CreatedAt time.Time `db:"created_at"`
 	IsDone    bool      `db:"is_done"`
+	Comment   string    `db:"comment"`
 }

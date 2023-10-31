@@ -1,1 +1,15 @@
 /* placeholder file for CSS */
+/*task.htmlのため */
+dl {
+    margin: 0;
+    padding: 0;
+  }
+  
+  dt {
+    border: 1px solid #000; 
+    background-color: #b2aefd6d; 
+    padding: 5px;
+    margin: 5px 0;
+    border-radius: 5px;
+  }
+  
