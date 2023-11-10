@@ -1,0 +1,13 @@
+{{ template "header" . }}
+<h1>ユーザ登録</h1>
+{{ if .Error }}
+<p><font color="#FF0000">{{ .Error }}</font><p>
+{{ end }}
+<form action="/user/new" method="POST">
+    <label>ユーザ名: </label><input type="text" name="username" value="{{ .Username }}" required><br>
+    <label>パスワード(大小英字、数字、記号を1文字以上、かつ10文字以上): </label><input type="text" name="password" value="{{ .Password }}" required><br>
+    <label>パスワード(確認用): </label><input type="text" name="passwordRe" required><br>
+    <input type="submit" value="登録">
+</form>
+<button onclick="goBack()">前のページに戻る</button>
+{{ template "footer" }}

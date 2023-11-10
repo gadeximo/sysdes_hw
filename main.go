@@ -33,6 +33,10 @@ func main() {
 	// routing
 	engine.Static("/assets", "./assets")
 	engine.GET("/", service.Home)
+
+	engine.GET("/user/new", service.NewUserForm)
+    engine.POST("/user/new", service.RegisterUser)
+
 	engine.GET("/list", service.TaskList)
 	engine.GET("/task/:id", service.ShowTask) // ":id" is a parameter
 	// タスクの新規登録
