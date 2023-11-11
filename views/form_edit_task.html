@@ -9,7 +9,7 @@
     <label>Comment</label>
     <textarea name="comment" >{{ .Task.Comment }}</textarea>
     <br>
-    <input type="submit" value="登録" onclick="return confirm_update();">
+    <input type="submit" value="登録" onclick="return confirmWithText('編集を登録して良いですか？');">
     <a href="/task/{{ .Task.ID }}"><button type="button">戻る</button></a>
 </form>
 {{ template "footer" }}

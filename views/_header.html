@@ -8,4 +8,7 @@
     <script type="text/javascript" src="/assets/script.js"></script>
 </head>
 <body>
+    <a href="/">トップページ</a>
+    <form id="logoutButton" action="/logout" method="POST" style="display:none;"><input type="submit" value="ログアウト" onclick="return confirmWithText('ログアウトしてもいいですか');"></form>
+    <a id="loginButton" href="/login" style="display:none;"><button type="button">ログイン/新規登録</button></a>
 {{ end }}
