@@ -5,11 +5,13 @@ import (
 	"strconv"
 	"fmt"
 	"github.com/gin-gonic/gin"
+    "github.com/gin-contrib/sessions"
 	database "todolist.go/db"
 )
 
 // TaskList renders list of tasks in DB
 func TaskList(ctx *gin.Context) {
+    userID := sessions.Default(ctx).Get("user")
 	// Get DB connection
 	db, err := database.GetConnection()
 	if err != nil {
@@ -24,10 +26,10 @@ func TaskList(ctx *gin.Context) {
 	var tasks []database.Task
 	switch {
     case isDoneQueryStr == "":
-        err = db.Select(&tasks, "SELECT * FROM tasks WHERE title LIKE ?", "%" + kw + "%")
+        err = db.Select(&tasks, "SELECT id, title, created_at, is_done FROM tasks INNER JOIN ownership ON task_id = id WHERE user_id = ? AND title LIKE ?",userID, "%" + kw + "%")
     default:
         isDoneQuery := (isDoneQueryStr=="t") 
-        err = db.Select(&tasks, "SELECT * FROM tasks WHERE title LIKE ? AND is_done = ?", "%" + kw + "%" , isDoneQuery)
+        err = db.Select(&tasks, "SELECT id, title, created_at, is_done FROM tasks INNER JOIN ownership ON task_id = id WHERE user_id = ? AND title LIKE ? AND is_done = ?",userID, "%" + kw + "%" , isDoneQuery)
     }
     if err != nil {
         Error(http.StatusInternalServerError, err.Error())(ctx)
@@ -73,6 +75,7 @@ func NewTaskForm(ctx *gin.Context) {
 
 //process for newtask form 
 func RegisterTask(ctx *gin.Context) {
+    userID := sessions.Default(ctx).Get("user")
     // Get task title
     title, exist := ctx.GetPostForm("title")
     if !exist {
@@ -91,17 +94,28 @@ func RegisterTask(ctx *gin.Context) {
         return
     }
     // Create new data with given title on DB
+    tx := db.MustBegin()
     result, err := db.Exec("INSERT INTO tasks (title, comment) VALUES (? , ?)", title , comment)
     if err != nil {
+        tx.Rollback()
         Error(http.StatusInternalServerError, err.Error())(ctx)
         return
     }
     // Render status
-    path := "/list"  // デフォルトではタスク一覧ページへ戻る
-    if id, err := result.LastInsertId(); err == nil {
-        path = fmt.Sprintf("/task/%d", id)   // 正常にIDを取得できた場合は /task/<id> へ戻る
+    taskID, err := result.LastInsertId()
+    if err != nil {
+        tx.Rollback()
+        Error(http.StatusInternalServerError, err.Error())(ctx)
+        return
     }
-    ctx.Redirect(http.StatusFound, path)
+    _, err = tx.Exec("INSERT INTO ownership (user_id, task_id) VALUES (?, ?)", userID, taskID)
+    if err != nil {
+        tx.Rollback()
+        Error(http.StatusInternalServerError, err.Error())(ctx)
+        return
+    }
+    tx.Commit()
+    ctx.Redirect(http.StatusFound, fmt.Sprintf("/task/%d", taskID))
 }
 
 //return editTask page
@@ -188,4 +202,32 @@ func DeleteTask(ctx *gin.Context) {
     }
     // Redirect to /list
     ctx.Redirect(http.StatusFound, "/list")
+}
+
+func TaskIDandUserCheck(ctx *gin.Context){
+    userID := sessions.Default(ctx).Get("user")
+    db, err := database.GetConnection()
+	if err != nil {
+		Error(http.StatusInternalServerError, err.Error())(ctx)
+		return
+	}
+
+	// parse ID given as a parameter
+	taskid, err := strconv.Atoi(ctx.Param("id"))
+	if err != nil {
+		Error(http.StatusBadRequest, err.Error())(ctx)
+		return
+	}
+    var idAndUserCount int
+    err = db.Get(&idAndUserCount, "SELECT COUNT(*) FROM ownership WHERE user_id = ? AND task_id = ?;", userID, taskid)
+    if err != nil {
+        Error(http.StatusInternalServerError, err.Error())(ctx)
+        return
+    }
+    if idAndUserCount == 0 {
+        Error(http.StatusForbidden, "不正アクセス")(ctx)
+        ctx.Abort()
+    } else {
+        ctx.Next()
+    }
 }
