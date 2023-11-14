@@ -139,3 +139,140 @@ func Logout(ctx *gin.Context) {
     session.Save()
     ctx.Redirect(http.StatusFound, "/")
 }
+
+func ShowAccountPage(ctx *gin.Context) {
+	userID := sessions.Default(ctx).Get("user")
+	// Get DB connection
+	db, err := database.GetConnection()
+	if err != nil {
+		Error(http.StatusInternalServerError, err.Error())(ctx)
+		return
+	}
+	var username string
+	err = db.Get(&username,"SELECT name FROM users WHERE id = ?" ,userID)
+	if err != nil {
+        Error(http.StatusInternalServerError, err.Error())(ctx)
+        return
+    }
+    ctx.HTML(http.StatusOK, "account.html", gin.H{"Title": "Account", "UserName":username })
+}
+
+func ShowRepasswordPage(ctx *gin.Context){
+	userID := sessions.Default(ctx).Get("user")
+	// Get DB connection
+	db, err := database.GetConnection()
+	if err != nil {
+		Error(http.StatusInternalServerError, err.Error())(ctx)
+		return
+	}
+	var username string
+	err = db.Get(&username,"SELECT name FROM users WHERE id = ?" ,userID)
+	if err != nil {
+        Error(http.StatusInternalServerError, err.Error())(ctx)
+        return
+    }
+    ctx.HTML(http.StatusOK, "form_edit_password.html", gin.H{"Title": "Edit password","Username": username })
+}
+func EditUserPassword(ctx *gin.Context) {
+	userID := sessions.Default(ctx).Get("user")
+	// Get DB connection
+	db, err := database.GetConnection()
+	if err != nil {
+		Error(http.StatusInternalServerError, err.Error())(ctx)
+		return
+	}
+	var user database.User
+    err = db.Get(&user, "SELECT id, name, password FROM users WHERE id = ?", userID)
+    if err != nil {
+        Error(http.StatusInternalServerError, err.Error())(ctx)
+        return
+    }
+    username := user.Name
+    // フォームデータの受け取り
+    oldpassword := ctx.PostForm("oldpassword")
+    newpassword := ctx.PostForm("newpassword")
+	newpasswordRe:= ctx.PostForm("newpasswordRe")
+    switch {
+    case oldpassword == "" || newpassword == "" || newpasswordRe == "":
+        ctx.HTML(http.StatusBadRequest, "form_edit_password.html", gin.H{"Title": "Edit password","Username": username, "Error": "please, fill all blank", "Oldpassword": oldpassword, "Newpassword": newpassword, "NewpasswordRe": newpasswordRe})
+		return
+	case newpassword != newpasswordRe:
+        ctx.HTML(http.StatusBadRequest, "form_edit_password.html", gin.H{"Title": "Edit password","Username": username, "Error": "confirm password did not match ", "Oldpassword": oldpassword, "Newpassword": newpassword, "NewpasswordRe": newpasswordRe})
+		return
+    case !isPasswordComplex(newpassword):
+        ctx.HTML(http.StatusBadRequest, "form_edit_password.html", gin.H{"Title": "Edit password","Username": username, "Error": "Password is not complex, please use at least one letter (A-Z a-z) and least one digit (0-9) and special character (!\"#$%&'()*+,-./:;<=>?@[\\]^_`{|}~)", "Oldpassword": oldpassword, "Newpassword": newpassword, "NewpasswordRe": newpasswordRe})
+        return
+    case len(newpassword)<10:
+        ctx.HTML(http.StatusBadRequest, "form_edit_password.html", gin.H{"Title": "Edit password","Username": username, "Error": "Password is short, please at least 10 characters", "Oldpassword": oldpassword, "Newpassword": newpassword, "NewpasswordRe": newpasswordRe})
+        return
+    }
+
+    if hex.EncodeToString(user.Password) != hex.EncodeToString(hash(oldpassword)) {
+        ctx.HTML(http.StatusBadRequest, "form_edit_password.html", gin.H{"Title": "Edit password","Username": username, "Error": "old password is not correct.", "Oldpassword": oldpassword, "Newpassword": newpassword, "NewpasswordRe": newpasswordRe})
+        return
+    }
+	_, err = db.Exec("UPDATE users SET password = ? WHERE id = ?", hash(newpassword), userID)
+    if err != nil {
+        Error(http.StatusInternalServerError, err.Error())(ctx)
+        return
+    }
+ 
+    ctx.Redirect(http.StatusFound, "/user/account")
+}
+func ShowRenamePage(ctx *gin.Context){
+    userID := sessions.Default(ctx).Get("user")
+	// Get DB connection
+	db, err := database.GetConnection()
+	if err != nil {
+		Error(http.StatusInternalServerError, err.Error())(ctx)
+		return
+	}
+	var username string
+	err = db.Get(&username,"SELECT name FROM users WHERE id = ?" ,userID)
+	if err != nil {
+        Error(http.StatusInternalServerError, err.Error())(ctx)
+        return
+    }
+    ctx.HTML(http.StatusOK, "form_edit_username.html", gin.H{"Title": "Edit username","Username": username })
+}
+func EditUsername(ctx *gin.Context) {
+    userID := sessions.Default(ctx).Get("user")
+	// Get DB connection
+	db, err := database.GetConnection()
+	if err != nil {
+		Error(http.StatusInternalServerError, err.Error())(ctx)
+		return
+	}
+	var user database.User
+    err = db.Get(&user, "SELECT id, name, password FROM users WHERE id = ?", userID)
+    if err != nil {
+        Error(http.StatusInternalServerError, err.Error())(ctx)
+        return
+    }
+    newusername := ctx.PostForm("newusername")
+    switch {
+    case newusername == "":
+        ctx.HTML(http.StatusBadRequest, "form_edit_username.html", gin.H{"Title": "Edit username","Username": user.Name, "Error": "please fill blank."})
+        return
+    case user.Name == newusername:
+        ctx.HTML(http.StatusBadRequest, "form_edit_username.html", gin.H{"Title": "Edit username","Username": user.Name, "Newusername": newusername, "Error": "same as old name"})
+        return 
+    }
+    var duplicate int
+    err = db.Get(&duplicate, "SELECT COUNT(*) FROM users WHERE name=?", newusername)
+    if err != nil {
+        Error(http.StatusInternalServerError, err.Error())(ctx)
+        return
+    }
+    if duplicate > 0 {
+        ctx.HTML(http.StatusBadRequest, "form_edit_username.html", gin.H{"Title": "Edit username","Username": user.Name, "Newusername": newusername, "Error": "same as other person's name"})
+        return
+    }
+    _, err = db.Exec("UPDATE users SET name = ? WHERE id = ?", newusername, userID)
+    if err != nil {
+        Error(http.StatusInternalServerError, err.Error())(ctx)
+        return
+    }
+ 
+    ctx.Redirect(http.StatusFound, "/user/account")
+}

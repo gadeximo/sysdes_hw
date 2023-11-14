@@ -48,6 +48,17 @@ func main() {
 	engine.GET("/user/new", service.NewUserForm)
     engine.POST("/user/new", service.RegisterUser)
 
+	accountGroup := engine.Group("/user/account")
+	accountGroup.Use(service.LoginCheck)
+	{
+		accountGroup.GET("/", service.ShowAccountPage)
+		accountGroup.GET("/edit/password",service.ShowRepasswordPage)
+		accountGroup.POST("/edit/password",service.EditUserPassword)
+		accountGroup.GET("/edit/username",service.ShowRenamePage)
+		accountGroup.POST("/edit/username",service.EditUsername)
+		accountGroup.GET("/delete",service.NotImplemented)
+	}
+
 	engine.GET("/list", service.LoginCheck ,service.TaskList)
 	taskGroup := engine.Group("/task")
     taskGroup.Use(service.LoginCheck)
