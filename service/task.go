@@ -28,6 +28,11 @@ func TaskList(ctx *gin.Context) {
     if sortCriterion == "" {
         sortCriterion = "createdNew"
     }
+
+    page, err := strconv.Atoi(ctx.Query("page"))
+	if err != nil {
+		page = 0
+	} 
     orderedby := "tasks.created_at DESC"
     switch sortCriterion {
     case "deadlineNear":
@@ -42,20 +47,35 @@ func TaskList(ctx *gin.Context) {
 
 	// Get tasks in DB
 	var tasks []database.Task
+    var maxpage int
+    var err1 error
+    var err2 error
+    parPage := 10
 	switch {
     case isDoneQueryStr == "":
-        err = db.Select(&tasks, "SELECT id, title, created_at, deadline ,is_done ,comment FROM tasks INNER JOIN ownership ON task_id = id WHERE user_id = ? AND title LIKE ? ORDER BY "+ orderedby ,userID, "%" + kw + "%")
+        err1 = db.Select(&tasks, "SELECT id, title, created_at, deadline ,is_done ,comment FROM tasks INNER JOIN ownership ON task_id = id WHERE user_id = ? AND title LIKE ? ORDER BY "+ orderedby+" LIMIT 10 OFFSET ?" ,userID, "%" + kw + "%", page*10)
+        err2 = db.Get(&maxpage, "SELECT COUNT(*) FROM tasks INNER JOIN ownership ON task_id = id WHERE user_id = ? AND title LIKE ?", userID, "%" + kw + "%")
     default:
         isDoneQuery := (isDoneQueryStr=="t") 
-        err = db.Select(&tasks, "SELECT id, title, created_at, deadline,is_done , comment FROM tasks INNER JOIN ownership ON task_id = id WHERE user_id = ? AND title LIKE ? AND is_done = ? ORDER BY "+ orderedby,userID, "%" + kw + "%" , isDoneQuery )
+        err1 = db.Select(&tasks, "SELECT id, title, created_at, deadline,is_done , comment FROM tasks INNER JOIN ownership ON task_id = id WHERE user_id = ? AND title LIKE ? AND is_done = ? ORDER BY "+ orderedby+" LIMIT 10 OFFSET ?",userID, "%" + kw + "%" , isDoneQuery, page*10)
+        err2 = db.Get(&maxpage, "SELECT COUNT(*) FROM tasks INNER JOIN ownership ON task_id = id WHERE user_id = ? AND title LIKE ? AND is_done = ?", userID, "%" + kw + "%", isDoneQuery)
     }
-    if err != nil {
+    maxpage = (maxpage / parPage)
+    pages := []int{}
+	for i := 0; i <= maxpage; i++ {
+		pages = append(pages, i)
+	}
+    if err1 != nil  {
+        Error(http.StatusInternalServerError, err.Error())(ctx)
+        return
+    }
+    if err2 != nil  {
         Error(http.StatusInternalServerError, err.Error())(ctx)
         return
     }
 
 	// Render tasks
-	ctx.HTML(http.StatusOK, "task_list.html", gin.H{"Title": "Task list", "Tasks": tasks ,"Kw": kw, "IsDoneQuery": isDoneQueryStr, "SortCriteroin": sortCriterion})
+	ctx.HTML(http.StatusOK, "task_list.html", gin.H{"Title": "Task list", "Tasks": tasks ,"Kw": kw, "IsDoneQuery": isDoneQueryStr, "SortCriteroin": sortCriterion, "Page": page ,"Pages": pages})
 }
 
 // ShowTask renders a task with given ID

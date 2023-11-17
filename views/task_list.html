@@ -11,6 +11,7 @@
     <input type="radio" name="sortCriterion" value="createdOld" {{ if eq .SortCriteroin "createdOld" }}checked{{ end }}> <label>作成古い順</label>
     <input type="radio" name="sortCriterion" value="deadlineNear"{{ if eq .SortCriteroin "deadlineNear" }}checked{{ end }} > <label>締め切り近い順</label>
     <input type="radio" name="sortCriterion" value="deadlineFar" {{ if eq .SortCriteroin "deadlineFar" }}checked{{ end }}> <label>締め切り遠い順</label><br>
+    <input type="hidden" name="page" value="0">
 </form>
 <p><a href="/task/new">新規登録</a></p>
 {{ if not .Tasks }}
@@ -36,5 +37,20 @@
     </tr>
     {{ end }}
 </table>
+<form action="/list" method="GET">
+    <!-- 既存のフォーム情報を hidden フィールドで保持 -->
+    <input type="hidden" name="kw" value="{{ .Kw }}">
+    <input type="hidden" name="is_done" value="{{ .IsDoneQuery }}">
+    <input type="hidden" name="sortCriterion" value="{{ .SortCriterion }}">
+
+    <!-- ページネーション用のフォーム -->
+    <label for="page">ページ番号：</label>
+    <select name="page">
+        {{ range $i := .Pages }}
+            <option value="{{ $i }}" {{ if eq $.Page $i }}selected{{ end }} >{{ $i }}</option>
+        {{ end }}
+    </select>
+    <input type="submit" value="ページの表示">
+</form>
 {{ end }}
 {{ template "footer" }}
