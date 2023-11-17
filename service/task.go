@@ -194,7 +194,7 @@ func DeleteTask(ctx *gin.Context) {
         Error(http.StatusInternalServerError, err.Error())(ctx)
         return
     }
-    // Delete the task from DB
+    // Delete the task from DB オーナーシップもカスケード制約により削除される。こちらをタスク削除ではなくオーナシップのみの削除にすればタスク共有の時皆から一気にタスクが消えてしまうことがなくなる。
     _, err = db.Exec("DELETE FROM tasks WHERE id=?", id)
     if err != nil {
         Error(http.StatusInternalServerError, err.Error())(ctx)

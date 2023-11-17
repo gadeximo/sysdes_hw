@@ -276,3 +276,33 @@ func EditUsername(ctx *gin.Context) {
  
     ctx.Redirect(http.StatusFound, "/user/account")
 }
+func DeleteUser(ctx *gin.Context){
+    userID := sessions.Default(ctx).Get("user")
+	// Get DB connection
+	db, err := database.GetConnection()
+	if err != nil {
+		Error(http.StatusInternalServerError, err.Error())(ctx)
+        ctx.Abort()
+		return
+	}
+    tx := db.MustBegin()
+    //外部キー制約、カスケード制約によって自動的にオーナーシップも削除
+    _ , err = db.Exec("DELETE FROM users WHERE id=?", userID)
+    if err != nil {
+        tx.Rollback()
+        Error(http.StatusInternalServerError, err.Error())(ctx)
+        ctx.Abort()
+        return
+    }
+    //オーナーシップ削除後参照がなくなったタスク削除、時間が過度にかかる懸念あり
+    _, err = tx.Exec("DELETE FROM tasks WHERE id NOT IN (SELECT DISTINCT task_id FROM ownership)")
+    if err != nil {
+        tx.Rollback()
+        Error(http.StatusInternalServerError, err.Error())(ctx)
+        ctx.Abort()
+        return
+    }
+    tx.Commit()
+    //セッションを消去する作業を行わないと無効なクッキーが残り続ける。
+    ctx.Next()
+}

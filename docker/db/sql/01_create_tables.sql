@@ -26,3 +26,15 @@ CREATE TABLE `tasks` (
     `comment` varchar(256) NOT NULL DEFAULT '未記入',
     PRIMARY KEY (`id`)
 ) DEFAULT CHARSET=utf8mb4;
+
+ALTER TABLE ownership
+ADD CONSTRAINT fk_ownership_user
+FOREIGN KEY (user_id)
+REFERENCES users(id)
+ON DELETE CASCADE;
+
+ALTER TABLE ownership
+ADD CONSTRAINT fk_ownership_task
+FOREIGN KEY (task_id)
+REFERENCES tasks(id)
+ON DELETE CASCADE;

@@ -56,7 +56,7 @@ func main() {
 		accountGroup.POST("/edit/password",service.EditUserPassword)
 		accountGroup.GET("/edit/username",service.ShowRenamePage)
 		accountGroup.POST("/edit/username",service.EditUsername)
-		accountGroup.GET("/delete",service.NotImplemented)
+		accountGroup.GET("/delete",service.DeleteUser, service.Logout)
 	}
 
 	engine.GET("/list", service.LoginCheck ,service.TaskList)
