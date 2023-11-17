@@ -10,6 +10,7 @@ type Task struct {
 	ID        uint64    `db:"id"`
 	Title     string    `db:"title"`
 	CreatedAt time.Time `db:"created_at"`
+	Deadline time.Time `db:"deadline"`
 	IsDone    bool      `db:"is_done"`
 	Comment   string    `db:"comment"`
 }

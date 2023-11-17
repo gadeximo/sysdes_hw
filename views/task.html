@@ -5,6 +5,8 @@
     <dd>{{ .ID }}</dd>
     <dt>Created at</dt>
     <dd>{{ .CreatedAt }}</dd>
+    <dt>Deadline</dt>
+    <dd>{{ .Deadline }}</dd>
     <dt>Status</dt>
     <dd><input type="checkbox" {{ if .IsDone }}checked {{ end }}disabled/>済</dd>
     <dt>Comment</dt>

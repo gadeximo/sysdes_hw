@@ -5,9 +5,12 @@
     <br>
     <input type="radio" name="is_done" value="t" {{ if .Task.IsDone }}checked{{ end }}><label>完了</label>
     <input type="radio" name="is_done" value="f" {{ if not .Task.IsDone }}checked{{ end }}><label>未完了</label>
-    </br>
+    <br>
     <label>Comment</label>
     <textarea name="comment" >{{ .Task.Comment }}</textarea>
+    <br>
+    <label>Deadline</label>
+    <input  type="datetime-local" name ="deadline" value="{{ .Deadline }}">
     <br>
     <input type="submit" value="登録" onclick="return confirmWithText('編集を登録して良いですか？');">
     <a href="/task/{{ .Task.ID }}"><button type="button">戻る</button></a>
