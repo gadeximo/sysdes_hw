@@ -31,7 +31,11 @@
         <td><a href="/task/{{ $task.ID }}">{{ $task.ID }}</a></td>
         <td>{{ $task.Title }}</td>
         <td>{{ $task.CreatedAt }}</td>
-        <td>{{ $task.Deadline }}</td>
+        <td style="color: 
+        {{ if lt $task.DaysLeft 0 }}red
+        {{ else if le $task.DaysLeft 7 }}orange
+        {{ else }}inherit
+        {{ end }}">{{ $task.Deadline }}</td>
         <td>{{ if $task.IsDone }}済{{ end }}</td>
         <td>{{ $task.Comment }}</td>
     </tr>

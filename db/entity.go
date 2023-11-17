@@ -13,6 +13,7 @@ type Task struct {
 	Deadline time.Time `db:"deadline"`
 	IsDone    bool      `db:"is_done"`
 	Comment   string    `db:"comment"`
+	DaysLeft int
 }
 
 type User struct {

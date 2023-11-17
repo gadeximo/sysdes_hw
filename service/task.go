@@ -73,6 +73,13 @@ func TaskList(ctx *gin.Context) {
         Error(http.StatusInternalServerError, err.Error())(ctx)
         return
     }
+    currentTime := time.Now()
+
+	// タスクの締め切りまでの残り日数を計算して代入
+	for i := range tasks {
+		daysLeft := int(tasks[i].Deadline.Sub(currentTime).Hours() / 24)
+		tasks[i].DaysLeft = daysLeft
+	}
 
 	// Render tasks
 	ctx.HTML(http.StatusOK, "task_list.html", gin.H{"Title": "Task list", "Tasks": tasks ,"Kw": kw, "IsDoneQuery": isDoneQueryStr, "SortCriteroin": sortCriterion, "Page": page ,"Pages": pages})
