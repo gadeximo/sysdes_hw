@@ -287,7 +287,7 @@ func DeleteUser(ctx *gin.Context){
 	}
     tx := db.MustBegin()
     //外部キー制約、カスケード制約によって自動的にオーナーシップも削除
-    _ , err = db.Exec("DELETE FROM users WHERE id=?", userID)
+    _ , err = tx.Exec("DELETE FROM users WHERE id=?", userID)
     if err != nil {
         tx.Rollback()
         Error(http.StatusInternalServerError, err.Error())(ctx)

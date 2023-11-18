@@ -146,9 +146,9 @@ func RegisterTask(ctx *gin.Context) {
     var result sql.Result
     var Execerr error
     if deadlineErr != nil{
-        result, Execerr = db.Exec("INSERT INTO tasks (title, comment) VALUES (? , ?)", title , comment)
+        result, Execerr = tx.Exec("INSERT INTO tasks (title, comment) VALUES (? , ?)", title , comment)
     } else {
-        result, Execerr = db.Exec("INSERT INTO tasks (title, comment, deadline) VALUES (? , ? , ?)", title , comment, deadline)
+        result, Execerr = tx.Exec("INSERT INTO tasks (title, comment, deadline) VALUES (? , ? , ?)", title , comment, deadline)
     }
     
     if Execerr != nil {
@@ -262,7 +262,7 @@ func DeleteTask(ctx *gin.Context) {
     }
     //ownershipを削除して参照がなくなったタスクを削除する。
     tx := db.MustBegin()
-    _, err = db.Exec("DELETE FROM ownership WHERE user_id = ? AND task_id = ?", userID, id)
+    _, err = tx.Exec("DELETE FROM ownership WHERE user_id = ? AND task_id = ?", userID, id)
     if err != nil {
         tx.Rollback()
         Error(http.StatusInternalServerError, err.Error())(ctx)
