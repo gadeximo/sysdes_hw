@@ -14,5 +14,6 @@
 </dl>
 <a href="/list"><button type="button">リストへ戻る</button></a>
 <a href="/task/edit/{{ .ID }}"><button type="button">編集</button></a>
+<a href="/task/share/{{ .ID }}"><button type="button">共有</button></a>
 <button type="button" onclick="confirm_delete({{ .ID }})">削除</button>
 {{ template "footer" }}

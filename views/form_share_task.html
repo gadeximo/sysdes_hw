@@ -1,0 +1,11 @@
+{{ template "header" . }}
+<h1>ユーザーにタスクを共有</h1>
+{{ if .Error }}
+<p><font color="#FF0000">{{ .Error }}</font><p>
+{{ end }}
+<form action="/task/share/{{ .ID }}" method="POST">
+    <label>共有したいユーザーの名前: </label><input type="text" name="shareusername" value="{{ .Shareusername }}" required><br>
+    <input type="submit" value="共有">
+</form>
+<a href="/task/{{ .ID }}">戻る</a>
+{{ template "footer" }}

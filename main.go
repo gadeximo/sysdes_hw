@@ -72,6 +72,8 @@ func main() {
         taskGroup.POST("/edit/:id", service.TaskIDandUserCheck ,service.UpdateTask)
         // 既存タスクの削除
         taskGroup.GET("/delete/:id", service.TaskIDandUserCheck ,service.DeleteTask)
+		taskGroup.GET("/share/:id", service.TaskIDandUserCheck ,service.ShowSharePage)
+		taskGroup.POST("/share/:id",service.TaskIDandUserCheck ,service.Sharetask)
     }
 
 	// start server

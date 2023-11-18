@@ -247,6 +247,7 @@ func UpdateTask(ctx *gin.Context){
 }
 //削除ボタン押された時飛ぶgetのルーティング
 func DeleteTask(ctx *gin.Context) {
+    userID := sessions.Default(ctx).Get("user")
     // ID の取得
     id, err := strconv.Atoi(ctx.Param("id"))
     if err != nil {
@@ -259,12 +260,21 @@ func DeleteTask(ctx *gin.Context) {
         Error(http.StatusInternalServerError, err.Error())(ctx)
         return
     }
-    // Delete the task from DB オーナーシップもカスケード制約により削除される。こちらをタスク削除ではなくオーナシップのみの削除にすればタスク共有の時皆から一気にタスクが消えてしまうことがなくなる。
-    _, err = db.Exec("DELETE FROM tasks WHERE id=?", id)
+    //ownershipを削除して参照がなくなったタスクを削除する。
+    tx := db.MustBegin()
+    _, err = db.Exec("DELETE FROM ownership WHERE user_id = ? AND task_id = ?", userID, id)
     if err != nil {
+        tx.Rollback()
         Error(http.StatusInternalServerError, err.Error())(ctx)
         return
     }
+    _, err = tx.Exec("DELETE FROM tasks WHERE id = ? AND NOT EXISTS (SELECT 1 FROM ownership WHERE task_id = ?)" , id, id)
+    if err != nil {
+        tx.Rollback()
+        Error(http.StatusInternalServerError, err.Error())(ctx)
+        return
+    }
+    tx.Commit()
     // Redirect to /list
     ctx.Redirect(http.StatusFound, "/list")
 }
@@ -295,4 +305,59 @@ func TaskIDandUserCheck(ctx *gin.Context){
     } else {
         ctx.Next()
     }
+}
+
+func ShowSharePage(ctx *gin.Context){
+    taskID, err := strconv.Atoi(ctx.Param("id"))
+    if err != nil {
+		Error(http.StatusBadRequest, err.Error())(ctx)
+		return
+	}
+    ctx.HTML(http.StatusOK, "form_share_task.html", gin.H{"Title": "share task","ID": taskID })
+}
+
+func Sharetask(ctx *gin.Context) {
+    userID := sessions.Default(ctx).Get("user")
+    taskID, err := strconv.Atoi(ctx.Param("id"))
+	// Get DB connection
+	db, err := database.GetConnection()
+	if err != nil {
+		Error(http.StatusInternalServerError, err.Error())(ctx)
+		return
+	}
+    shareusername := ctx.PostForm("shareusername")
+    
+    var shareuserID []uint64
+    err = db.Select(&shareuserID, "SELECT id FROM users WHERE name=?", shareusername)
+    if err != nil {
+        Error(http.StatusInternalServerError, err.Error())(ctx)
+        return
+    }
+    if len(shareuserID) < 1 {
+        ctx.HTML(http.StatusBadRequest, "form_share_task.html", gin.H{"ID": taskID ,"Title": "share task","Shareusername": shareusername, "Error": "そのユーザーは存在しません"})
+        return
+    } else if shareuserID[0] == userID {
+        ctx.HTML(http.StatusBadRequest, "form_share_task.html", gin.H{"ID": taskID ,"Title": "share task","Shareusername": shareusername, "Error": "自身のユーザーネームは許可されません"})
+        return
+    }
+    var duplicate int
+    err = db.Get(&duplicate, "SELECT COUNT(*) FROM ownership WHERE task_id = ? AND user_id = ?", taskID, shareuserID[0])
+    if err != nil {
+        Error(http.StatusInternalServerError, err.Error())(ctx)
+        return
+    }
+
+    if duplicate > 0 {
+        ctx.HTML(http.StatusBadRequest, "form_share_task.html", gin.H{"ID": taskID ,"Title": "share task","Shareusername": shareusername, "Error": "共有済みです"})
+        return
+    }
+
+    _, err = db.Exec("INSERT INTO ownership (task_id, user_id) VALUES (? , ?)", taskID, shareuserID[0])
+    if err != nil {
+        Error(http.StatusInternalServerError, err.Error())(ctx)
+        return
+    }
+    path := "/task/"+ ctx.Param("id") // デフォルトではタスク一覧ページへ戻る
+    ctx.Redirect(http.StatusFound, path)
+    
 }
