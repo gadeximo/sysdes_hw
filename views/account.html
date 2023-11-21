@@ -1,0 +1,6 @@
+{{ template "header" . }}
+<h1>{{ .UserName }}さんのアカウント管理ページ</h1>
+<a href="/user/account/edit/username">ユーザー名変更</a>
+<a href="/user/account/edit/password">パスワード変更</a>
+<a href="/user/account/delete"><button type="button" onclick="confirmWithText('アカウント、それに付随してタスクも削除されます、本当によろしいですか')">アカウント削除</button></a>
+{{ template "footer" }}

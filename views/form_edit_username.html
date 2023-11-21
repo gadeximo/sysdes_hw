@@ -1,0 +1,10 @@
+{{ template "header" . }}
+<h1>{{ .Username }}さん：名前変更</h1>
+{{ if .Error }}
+<p><font color="#FF0000">{{ .Error }}</font><p>
+{{ end }}
+<form action="/user/account/edit/username" method="POST">
+    <label>新しい名前: </label><input type="text" name="newusername" value="{{ .Newusername }}" required><br>
+    <input type="submit" value="登録">
+</form>
+{{ template "footer" }}

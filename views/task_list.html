@@ -1,5 +1,19 @@
 {{ template "header" . }}
 <h1>List of tasks</h1>
+<form action="/list" method="GET">
+    <input type="text" name="kw" value="{{ .Kw }}">
+    <input type="submit" value="検索">
+    <input type="radio" name="is_done" value="t" {{ if eq .IsDoneQuery "t" }}checked{{ end }}><label>完了</label>
+    <input type="radio" name="is_done" value="f" {{ if eq .IsDoneQuery "f" }}checked{{ end }}><label>未完了</label>
+    <input type="radio" name="is_done" value="" {{ if eq .IsDoneQuery "" }}checked{{ end }}><label>指定なし</label> <!-- report -->
+    <br>
+    <input type="radio" name="sortCriterion" value="createdNew" {{ if eq .SortCriteroin "createdNew" }}checked{{ end }}> <label>作成新しい順</label>
+    <input type="radio" name="sortCriterion" value="createdOld" {{ if eq .SortCriteroin "createdOld" }}checked{{ end }}> <label>作成古い順</label>
+    <input type="radio" name="sortCriterion" value="deadlineNear"{{ if eq .SortCriteroin "deadlineNear" }}checked{{ end }} > <label>締め切り近い順</label>
+    <input type="radio" name="sortCriterion" value="deadlineFar" {{ if eq .SortCriteroin "deadlineFar" }}checked{{ end }}> <label>締め切り遠い順</label><br>
+    <input type="hidden" name="page" value="0">
+</form>
+<p><a href="/task/new">新規登録</a></p>
 {{ if not .Tasks }}
 <p>登録データがありません．</p>
 {{ else }}
@@ -8,16 +22,39 @@
         <th>ID</th>
         <th>タイトル</th>
         <th>登録日</th>
+        <th>締め切り日</th>
         <th>状態</th>
+        <th>コメント</th>
     </tr>
     {{ range $task := .Tasks }}
     <tr>
         <td><a href="/task/{{ $task.ID }}">{{ $task.ID }}</a></td>
         <td>{{ $task.Title }}</td>
         <td>{{ $task.CreatedAt }}</td>
+        <td style="color: 
+        {{ if lt $task.DaysLeft 0 }}red
+        {{ else if le $task.DaysLeft 7 }}orange
+        {{ else }}inherit
+        {{ end }}">{{ $task.Deadline }}</td>
         <td>{{ if $task.IsDone }}済{{ end }}</td>
+        <td>{{ $task.Comment }}</td>
     </tr>
     {{ end }}
 </table>
+<form action="/list" method="GET">
+    <!-- 既存のフォーム情報を hidden フィールドで保持 -->
+    <input type="hidden" name="kw" value="{{ .Kw }}">
+    <input type="hidden" name="is_done" value="{{ .IsDoneQuery }}">
+    <input type="hidden" name="sortCriterion" value="{{ .SortCriteroin }}">
+
+    <!-- ページネーション用のフォーム -->
+    <label for="page">ページ番号：</label>
+    <select name="page">
+        {{ range $i := .Pages }}
+            <option value="{{ $i }}" {{ if eq $.Page $i }}selected{{ end }} >{{ $i }}</option>
+        {{ end }}
+    </select>
+    <input type="submit" value="ページの表示">
+</form>
 {{ end }}
 {{ template "footer" }}
